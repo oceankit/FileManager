@@ -7,11 +7,54 @@ using System.Security.AccessControl;
 using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Text;
+using System.Drawing;
 
 namespace FileManager
 {
     class Program
     {
+        public static void ConsoleWriteImage(Bitmap bmpSrc)
+        {
+            int sMax = 39;
+            decimal percent = Math.Min(decimal.Divide(sMax, bmpSrc.Width), decimal.Divide(sMax, bmpSrc.Height));
+            Size resSize = new Size((int)(bmpSrc.Width * percent), (int)(bmpSrc.Height * percent));
+            Func<System.Drawing.Color, int> ToConsoleColor = c =>
+            {
+                int index = (c.R > 128 | c.G > 128 | c.B > 128) ? 8 : 0;
+                index |= (c.R > 64) ? 4 : 0;
+                index |= (c.G > 64) ? 2 : 0;
+                index |= (c.B > 64) ? 1 : 0;
+                return index;
+            };
+            Bitmap bmpMin = new Bitmap(bmpSrc, resSize.Width, resSize.Height);
+            Bitmap bmpMax = new Bitmap(bmpSrc, resSize.Width * 2, resSize.Height * 2);
+            for (int i = 0; i < resSize.Height; i++)
+            {
+                for (int j = 0; j < resSize.Width; j++)
+                {
+                    Console.ForegroundColor = (ConsoleColor)ToConsoleColor(bmpMin.GetPixel(j, i));
+                    Console.Write("██");
+                }
+
+                Console.BackgroundColor = ConsoleColor.Black;
+                Console.Write("    ");
+
+                for (int j = 0; j < resSize.Width; j++)
+                {
+                    Console.ForegroundColor = (ConsoleColor)ToConsoleColor(bmpMax.GetPixel(j * 2, i * 2));
+                    Console.BackgroundColor = (ConsoleColor)ToConsoleColor(bmpMax.GetPixel(j * 2, i * 2 + 1));
+                    Console.Write("▀");
+
+                    Console.ForegroundColor = (ConsoleColor)ToConsoleColor(bmpMax.GetPixel(j * 2 + 1, i * 2));
+                    Console.BackgroundColor = (ConsoleColor)ToConsoleColor(bmpMax.GetPixel(j * 2 + 1, i * 2 + 1));
+                    Console.Write("▀");
+                }
+                System.Console.WriteLine();
+            }
+        }
+
         public static bool run = true;
         public static Stack<string> stk;
         public static Stack<int> cursorBefore;
@@ -51,9 +94,22 @@ namespace FileManager
             for (int i = 0; i < sys_dir.Count; i++)
             {
                 display = (sys_dir[i].Name.Length < 20) ? sys_dir[i].Name : sys_dir[i].Name.Substring(0, 20);
+                //if (sys_dir[i].GetType() == typeof(DirectoryInfo))
+                //{
+                //    Console.BackgroundColor = ConsoleColor.Magenta;
+                //    Console.ForegroundColor = ConsoleColor.White;
+                //}
+                //else if (sys_dir[i].GetType() == typeof(FileInfo))
+                //{
+                //    Console.BackgroundColor = ConsoleColor.DarkYellow;
+                //    Console.ForegroundColor = ConsoleColor.DarkBlue;
+                //}
                 Console.WriteLine(display);
+                //Console.ResetColor();
             }
         }
+
+        public static readonly List<string> ImageExtensions = new List<string> { ".JPG", ".JPE", ".BMP", ".GIF", ".PNG" };
 
         static void Main(string[] args)
         {
@@ -109,6 +165,12 @@ namespace FileManager
                             DrawDirectory(path);
                         }
 
+                    }
+                    else if (ImageExtensions.Contains(Path.GetExtension(sys_dir[position].FullName).ToUpper()))
+                    {
+                        Console.Clear();
+                        Bitmap btm = new Bitmap(sys_dir[position].FullName, true);
+                        ConsoleWriteImage(btm);
                     }
                     else if (sys_dir[position] is FileInfo) 
                     {
